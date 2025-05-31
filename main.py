@@ -256,6 +256,7 @@ async def moneta_webhook(request: Request) -> Response:
 
     # 4. Проверка MNT_ID
     if mnt_id_rx != MNT_ID:
+        logging.error("MNT_ID mismatch")
         xml_fail = build_xml_response(
             mnt_id=mnt_id_rx or "",
             mnt_trx_id=mnt_trx_id_rx or "",
@@ -267,6 +268,7 @@ async def moneta_webhook(request: Request) -> Response:
     # 5. Проверка подписи входящего запроса
     calc_sig = calculate_signature(params)
     if calc_sig != mnt_signature_rx:
+        logging.error(f"Signature mismatch: {calc_sig} expected, got {mnt_signature_rx}")
         xml_fail = build_xml_response(
             mnt_id=MNT_ID,
             mnt_trx_id=mnt_trx_id_rx or "",
@@ -287,6 +289,7 @@ async def moneta_webhook(request: Request) -> Response:
             status=status_value
         )
     except HTTPException as e:
+        logging.exception("Airtable update HTTPException")
         xml_fail = build_xml_response(
             mnt_id=MNT_ID,
             mnt_trx_id=mnt_trx_id_rx,
@@ -295,7 +298,7 @@ async def moneta_webhook(request: Request) -> Response:
         )
         return Response(content=xml_fail, status_code=200, media_type="application/xml")
     except Exception:
-        logging.exception("Непредвиденная ошибка при обновлении Airtable")
+        logging.exception("Airtable update Exception")
         xml_fail = build_xml_response(
             mnt_id=MNT_ID,
             mnt_trx_id=mnt_trx_id_rx,
