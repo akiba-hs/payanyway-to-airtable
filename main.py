@@ -38,18 +38,12 @@ def calculate_signature(params: Dict[str, str]) -> str:
     mnt_subscriber = params.get("MNT_SUBSCRIBER_ID", "")
     mnt_test_mode  = params.get("MNT_TEST_MODE", "0")
 
-    # Форматируем сумму: два знака после точки
-    try:
-        amount_str = f"{float(mnt_amount_raw):.2f}"
-    except ValueError:
-        amount_str = mnt_amount_raw  # если не удалось привести к float, оставляем как есть
-
     # Собираем строку для хэширования
     data_to_sign = (
         MNT_ID
         + mnt_trx_id
         + mnt_op_id
-        + amount_str
+        + mnt_amount_raw
         + mnt_currency
         + mnt_subscriber
         + mnt_test_mode
