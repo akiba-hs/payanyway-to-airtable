@@ -130,6 +130,9 @@ async def moneta_webhook(request: Request) -> Response:
     mnt_trx_id        = params.get("MNT_TRANSACTION_ID", "")
     mnt_signature_rx  = params.get("MNT_SIGNATURE", "").lower()
 
+    if not mnt_id:
+        return Response(content="SUCCESS", status_code=200, media_type="text/plain")
+    
     # 2. Проверяем идентификатор магазина
     if mnt_id != MNT_ID:
         logging.error("Неверный MNT_ID: получили %s, ожидали %s", mnt_id, MNT_ID)
