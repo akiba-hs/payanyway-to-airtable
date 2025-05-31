@@ -49,7 +49,7 @@ def calculate_signature(params: Dict[str, str]) -> str:
         + mnt_test_mode
         + INTEGRITY_CODE
     )
-    logging.info(data_to_sign)
+    logging.error(data_to_sign)
     # Возвращаем 32-символьную hex-строку в нижнем регистре
     return hashlib.md5(data_to_sign.encode("utf-8")).hexdigest()
 
