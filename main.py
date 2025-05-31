@@ -69,6 +69,7 @@ async def update_airtable_record(record_id: str, amount: Union[str, float], stat
 
     # Если amount — строка, оставляем как есть, Airtable примет строку или float
     payload = {
+        "typecast": True,
         "fields": {
             "Amount": amount,
             "Status": status
