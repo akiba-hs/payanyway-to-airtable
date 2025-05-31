@@ -137,11 +137,7 @@ async def get_airtable_email(record_id: str) -> str:
         # Поле Email отсутствует или пустое
         raise HTTPException(status_code=404, detail=f"Email not found in record {record_id}")
 
-    # Убеждаемся, что это строка
-    if not isinstance(email, str):
-        raise HTTPException(status_code=500, detail=f"Email field is not a string in record {record_id}")
-
-    return email.split(', ')[0]
+    return email[0]
 
 
 def build_xml_response(
