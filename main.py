@@ -67,6 +67,7 @@ async def update_airtable_record(record_id: str, amount: Union[float, str], stat
     }
 
     payload = {
+        "typecast": True,
         "fields": {
             "Amount": amount,
             "Status": status
