@@ -5,7 +5,9 @@ import json
 from typing import Dict, List, Tuple, Optional
 
 from fastapi import FastAPI, Request, Response, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse
 import httpx
+import jwt
 from xml.etree import ElementTree as ET
 from xml.dom import minidom
 from dotenv import load_dotenv
@@ -26,11 +28,21 @@ INTEGRITY_CODE = os.getenv("MNT_INTEGRITY_CODE", "").strip()
 AIRTABLE_API_KEY = os.getenv("AIRTABLE_API_KEY", "").strip()
 AIRTABLE_BASE_ID = os.getenv("AIRTABLE_BASE_ID", "").strip()
 AIRTABLE_TABLE_NAME = os.getenv("AIRTABLE_TABLE_NAME", "Payments").strip()
+AUTH_URL = os.getenv("AUTH_URL", "").strip()
+PUBLIC_KEY = os.getenv("PUBLIC_KEY", "").strip()
 
-if not all([MNT_ID, INTEGRITY_CODE, AIRTABLE_API_KEY, AIRTABLE_BASE_ID]):
+if not all([
+    MNT_ID,
+    INTEGRITY_CODE,
+    AIRTABLE_API_KEY,
+    AIRTABLE_BASE_ID,
+    AUTH_URL,
+    PUBLIC_KEY,
+]):
     logging.critical(
         "Не установлены обязательные переменные окружения: "
-        "MNT_ID, MNT_INTEGRITY_CODE, AIRTABLE_API_KEY, AIRTABLE_BASE_ID"
+        "MNT_ID, MNT_INTEGRITY_CODE, AIRTABLE_API_KEY, AIRTABLE_BASE_ID, "
+        "AUTH_URL, PUBLIC_KEY"
     )
 
 app = FastAPI()
@@ -63,6 +75,21 @@ def calculate_signature(params: Dict[str, str]) -> str:
         + INTEGRITY_CODE
     )
     return hashlib.md5(data_to_sign.encode("utf-8")).hexdigest()
+
+
+def calc_payment_url(payment_id: str, amount: str, description: str) -> str:
+    """Формирует ссылку на оплату PayAnyWay."""
+    options = {
+        "MNT_ID": MNT_ID,
+        "MNT_TRANSACTION_ID": payment_id,
+        "MNT_AMOUNT": amount,
+        "MNT_DESCRIPTION": description,
+        "MNT_CURRENCY_CODE": "RUB",
+        "MNT_TEST_MODE": "0",
+    }
+    return "https://www.payanyway.ru/assistant.htm?" + (
+        httpx.QueryParams(options).render()
+    )
 
 
 async def update_airtable_record(record_id: str, amount: str, status: str) -> None:
@@ -141,6 +168,29 @@ async def get_airtable_email(record_id: str) -> str:
     return email[0]
 
 
+async def find_invoices(username: str, user_id: str) -> List[Dict[str, object]]:
+    """Возвращает записи из Airtable для пользователя."""
+    base_url = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
+    headers = {
+        "Authorization": f"Bearer {AIRTABLE_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    async with httpx.AsyncClient() as client:
+        formula = f"FIND('@{username}', {{Telegram Username (from Resident)}})"
+        resp = await client.get(base_url, headers=headers, params={"filterByFormula": formula})
+        if resp.status_code != 200:
+            logging.error("Airtable search failed: %s %s", resp.status_code, resp.text)
+            return []
+        data = resp.json().get("records", [])
+        if not data and user_id:
+            formula = f"FIND('{user_id}', {{Telegram Username (from Resident)}})"
+            resp = await client.get(base_url, headers=headers, params={"filterByFormula": formula})
+            if resp.status_code == 200:
+                data = resp.json().get("records", [])
+    return data
+
+
 def build_xml_response(
     mnt_id: str,
     mnt_trx_id: str,
@@ -198,6 +248,83 @@ def build_xml_response(
     parsed = minidom.parseString(rough_xml)
     pretty_bytes = parsed.toxml(encoding="utf-8")
     return pretty_bytes.decode("utf-8")
+
+
+@app.get("/", response_class=HTMLResponse)
+async def invoices(request: Request) -> Response:
+    token = request.cookies.get("token")
+    if not token:
+        return RedirectResponse(
+            url=f"{AUTH_URL}?redirect_uri={request.url}&error=Unauthorized",
+            status_code=302,
+        )
+    try:
+        payload = jwt.decode(token, PUBLIC_KEY, algorithms=["RS256"])
+    except Exception:
+        return RedirectResponse(
+            url=f"{AUTH_URL}?redirect_uri={request.url}&error=Unauthorized",
+            status_code=302,
+        )
+
+    username = payload.get("username")
+    user_id = payload.get("id")
+
+    records = await find_invoices(username or "", str(user_id or ""))
+    rows = []
+    for rec in records:
+        f = rec.get("fields", {})
+        amount = f.get("Amount")
+        method = f.get("Method")
+        month = f.get("Month")
+        resident = ", ".join(f.get("Resident", [])) if isinstance(f.get("Resident"), list) else f.get("Resident")
+        status = f.get("Status")
+        pay_link = ""
+        if (
+            isinstance(status, dict)
+            and status.get("name") == "Unpaid"
+            and isinstance(method, dict)
+            and method.get("name") == "Auto Credit Card"
+        ):
+            description = f"Резидентство за {month} ({resident})"
+            pay_link = calc_payment_url(
+                str(f.get("Payment Id")), f"{float(amount):.2f}", description
+            )
+        method_name = method.get("name") if isinstance(method, dict) else method
+        status_name = status.get("name") if isinstance(status, dict) else status
+        link_html = f'<a class="pay-link" href="{pay_link}">Оплатить</a>' if pay_link else ''
+        rows.append(
+            f"<tr><td>{amount}</td><td>{method_name}</td><td>{month}</td><td>{resident}</td>"
+            f"<td>{status_name}</td><td>{link_html}</td></tr>"
+        )
+
+    table_rows = "".join(rows)
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang='en'>
+    <head>
+        <meta charset='utf-8'>
+        <title>Invoices</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; padding: 20px; }}
+            table {{ border-collapse: collapse; width: 100%; }}
+            th, td {{ border: 1px solid #ccc; padding: 8px 12px; text-align: left; }}
+            th {{ background-color: #f5f5f5; }}
+            tr:nth-child(even) {{ background-color: #fafafa; }}
+            a.pay-link {{ color: white; background: #007bff; padding: 4px 8px; border-radius: 4px; text-decoration: none; }}
+        </style>
+    </head>
+    <body>
+        <h1>Ваши инвойсы</h1>
+        <table>
+            <tr>
+                <th>Amount</th><th>Method</th><th>Month</th><th>Resident</th><th>Status</th><th></th>
+            </tr>
+            {table_rows}
+        </table>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
 
 
 @app.api_route("/webhook", methods=["GET", "POST"])
