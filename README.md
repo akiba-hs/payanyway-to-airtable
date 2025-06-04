@@ -11,6 +11,7 @@ AIRTABLE_BASE_ID
 AIRTABLE_TABLE_NAME  # optional, defaults to "Payments"
 AUTH_URL             # auth service url
 PUBLIC_KEY           # JWT public key, use \n for line breaks
+```
 
 ## Endpoints
 
