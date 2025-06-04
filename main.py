@@ -260,9 +260,9 @@ async def invoices(request: Request) -> Response:
         )
     try:
         payload = jwt.decode(token, PUBLIC_KEY, algorithms=["RS256"])
-    except Exception:
+    except Exception as e:
         return RedirectResponse(
-            url=f"{AUTH_URL}?redirect_uri={request.url}&error=Unauthorized",
+            url=f"{AUTH_URL}?redirect_uri={request.url}&error={e!r}",
             status_code=302,
         )
 
