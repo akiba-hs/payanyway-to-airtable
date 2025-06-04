@@ -313,8 +313,8 @@ async def invoices(request: Request) -> Response:
             row_class = "test-paid-row"
 
         rows.append(
-            f"<tr class='{row_class}'><td>{amount}</td><td>{method}</td><td>{month}</td><td>{resident}</td>"
-            f"<td>{status}</td><td>{link_html}</td></tr>"
+            f"<tr class='{row_class}'><td>{resident}</td><td>{month}</td>"
+            f"<td>{method}</td><td>{amount}</td><td>{status}</td><td>{link_html}</td></tr>"
         )
 
     table_rows = "".join(rows)
@@ -341,7 +341,7 @@ async def invoices(request: Request) -> Response:
         <h1>Ваши инвойсы</h1>
         <table>
             <tr>
-                <th>Сумма</th><th>Способ</th><th>Месяц</th><th>Резидент</th><th>Статус</th><th></th>
+                <th>Резидент</th><th>Месяц</th><th>Способ</th><th>Сумма</th><th>Статус</th><th></th>
             </tr>
             {table_rows}
         </table>
