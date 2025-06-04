@@ -87,9 +87,10 @@ def calc_payment_url(payment_id: str, amount: str, description: str) -> str:
         "MNT_CURRENCY_CODE": "RUB",
         "MNT_TEST_MODE": "0",
     }
-    return "https://www.payanyway.ru/assistant.htm?" + (
-        httpx.QueryParams(options).render()
-    )
+    # httpx.QueryParams does not provide a ``render`` method. ``str()`` will
+    # properly encode the parameters into a query string.
+    query_string = str(httpx.QueryParams(options))
+    return "https://www.payanyway.ru/assistant.htm?" + query_string
 
 
 async def update_airtable_record(record_id: str, amount: str, status: str) -> None:
