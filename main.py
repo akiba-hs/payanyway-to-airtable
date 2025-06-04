@@ -289,15 +289,13 @@ async def invoices(request: Request) -> Response:
             if name_field:
                 resident = ", ".join(name_field) if isinstance(name_field, list) else name_field
 
-        status = 
+        status = f.get("Status")
         pay_link = ""
-        if f.get("Status") == "Unpaid" and f.get("Methid") == "Auto Credit Card":
+        if status == "Unpaid" and f.get("Methid") == "Auto Credit Card":
             description = f"Резидентство за {month} ({resident})"
             pay_link = calc_payment_url(
                 str(f.get("Payment Id")), f"{float(amount):.2f}", description
             )
-        method_name = method.get("name") if isinstance(method, dict) else method
-        status_name = status.get("name") if isinstance(status, dict) else status
 
         link_html = (
             f'<a class="pay-link" href="{pay_link}">Оплатить</a>'
@@ -306,11 +304,11 @@ async def invoices(request: Request) -> Response:
         )
 
         row_class = ""
-        if status_name == "Paid":
+        if status == "Paid":
             row_class = "paid-row"
-        elif status_name == "Unpaid":
+        elif status == "Unpaid":
             row_class = "unpaid-row"
-        elif status_name == "Test Paid":
+        elif status == "Test Paid":
             row_class = "test-paid-row"
 
         rows.append(
