@@ -29,7 +29,7 @@ AIRTABLE_API_KEY = os.getenv("AIRTABLE_API_KEY", "").strip()
 AIRTABLE_BASE_ID = os.getenv("AIRTABLE_BASE_ID", "").strip()
 AIRTABLE_TABLE_NAME = os.getenv("AIRTABLE_TABLE_NAME", "Payments").strip()
 AUTH_URL = os.getenv("AUTH_URL", "").strip()
-PUBLIC_KEY = os.getenv("PUBLIC_KEY", "").strip()
+PUBLIC_KEY = os.getenv("PUBLIC_KEY", "").replace("\\n", "\n").strip()
 
 if not all([
     MNT_ID,
