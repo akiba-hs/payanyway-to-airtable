@@ -285,22 +285,13 @@ async def invoices(request: Request) -> Response:
 
         # Если поле содержит id записи Airtable, пробуем взять имя из lookup
         if resident and isinstance(resident, str) and resident.startswith("rec"):
-            name_field = (
-                f.get("Resident Name (from Resident)")
-                or f.get("Name (from Resident)")
-                or f.get("Resident (from Resident)")
-            )
+            name_field = f.get("Name (from Resident)")
             if name_field:
                 resident = ", ".join(name_field) if isinstance(name_field, list) else name_field
 
-        status = f.get("Status")
+        status = 
         pay_link = ""
-        if (
-            isinstance(status, dict)
-            and status.get("name") == "Unpaid"
-            and isinstance(method, dict)
-            and method.get("name") == "Auto Credit Card"
-        ):
+        if f.get("Status") == "Unpaid" and f.get("Methid") == "Auto Credit Card":
             description = f"Резидентство за {month} ({resident})"
             pay_link = calc_payment_url(
                 str(f.get("Payment Id")), f"{float(amount):.2f}", description
