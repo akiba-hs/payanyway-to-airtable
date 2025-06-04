@@ -312,8 +312,8 @@ async def invoices(request: Request) -> Response:
             row_class = "test-paid-row"
 
         rows.append(
-            f"<tr class='{row_class}'><td>{amount}</td><td>{method_name}</td><td>{month}</td><td>{resident}</td>"
-            f"<td>{status_name}</td><td>{link_html}</td></tr>"
+            f"<tr class='{row_class}'><td>{amount}</td><td>{method}</td><td>{month}</td><td>{resident}</td>"
+            f"<td>{status}</td><td>{link_html}</td></tr>"
         )
 
     table_rows = "".join(rows)
