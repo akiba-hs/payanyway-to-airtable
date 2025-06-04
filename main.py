@@ -291,7 +291,7 @@ async def invoices(request: Request) -> Response:
 
         status = f.get("Status")
         pay_link = ""
-        if status == "Unpaid" and f.get("Methid") == "Auto Credit Card":
+        if status == "Unpaid" and f.get("Method") == "Auto Credit Card":
             description = f"Резидентство за {month} ({resident})"
             pay_link = calc_payment_url(
                 str(f.get("Payment Id")), f"{float(amount):.2f}", description
