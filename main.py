@@ -276,7 +276,23 @@ async def invoices(request: Request) -> Response:
         amount = f.get("Amount")
         method = f.get("Method")
         month = f.get("Month")
-        resident = ", ".join(f.get("Resident", [])) if isinstance(f.get("Resident"), list) else f.get("Resident")
+
+        resident_val = f.get("Resident")
+        if isinstance(resident_val, list):
+            resident = ", ".join(resident_val)
+        else:
+            resident = resident_val
+
+        # Если поле содержит id записи Airtable, пробуем взять имя из lookup
+        if resident and isinstance(resident, str) and resident.startswith("rec"):
+            name_field = (
+                f.get("Resident Name (from Resident)")
+                or f.get("Name (from Resident)")
+                or f.get("Resident (from Resident)")
+            )
+            if name_field:
+                resident = ", ".join(name_field) if isinstance(name_field, list) else name_field
+
         status = f.get("Status")
         pay_link = ""
         if (
@@ -291,9 +307,23 @@ async def invoices(request: Request) -> Response:
             )
         method_name = method.get("name") if isinstance(method, dict) else method
         status_name = status.get("name") if isinstance(status, dict) else status
-        link_html = f'<a class="pay-link" href="{pay_link}">Оплатить</a>' if pay_link else ''
+
+        link_html = (
+            f'<a class="pay-link" href="{pay_link}">Оплатить</a>'
+            if pay_link
+            else '<span class="no-pay">Не оплачивается</span>'
+        )
+
+        row_class = ""
+        if status_name == "Paid":
+            row_class = "paid-row"
+        elif status_name == "Unpaid":
+            row_class = "unpaid-row"
+        elif status_name == "Test Paid":
+            row_class = "test-paid-row"
+
         rows.append(
-            f"<tr><td>{amount}</td><td>{method_name}</td><td>{month}</td><td>{resident}</td>"
+            f"<tr class='{row_class}'><td>{amount}</td><td>{method_name}</td><td>{month}</td><td>{resident}</td>"
             f"<td>{status_name}</td><td>{link_html}</td></tr>"
         )
 
@@ -311,13 +341,17 @@ async def invoices(request: Request) -> Response:
             th {{ background-color: #f5f5f5; }}
             tr:nth-child(even) {{ background-color: #fafafa; }}
             a.pay-link {{ color: white; background: #007bff; padding: 4px 8px; border-radius: 4px; text-decoration: none; }}
+            .no-pay {{ color: #777; font-style: italic; }}
+            .paid-row {{ background-color: #e6ffed; }}
+            .unpaid-row {{ background-color: #ffecec; }}
+            .test-paid-row {{ background-color: #fff9e6; }}
         </style>
     </head>
     <body>
         <h1>Ваши инвойсы</h1>
         <table>
             <tr>
-                <th>Amount</th><th>Method</th><th>Month</th><th>Resident</th><th>Status</th><th></th>
+                <th>Сумма</th><th>Способ</th><th>Месяц</th><th>Резидент</th><th>Статус</th><th></th>
             </tr>
             {table_rows}
         </table>
