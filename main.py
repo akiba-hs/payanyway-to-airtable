@@ -77,7 +77,7 @@ def calculate_signature(params: Dict[str, str]) -> str:
     return hashlib.md5(data_to_sign.encode("utf-8")).hexdigest()
 
 
-def calc_payment_url(payment_id: str, amount: str, description: str) -> str:
+def calc_payment_url(payment_id: str, amount: str, description: str, base_url: str) -> str:
     """Формирует ссылку на оплату PayAnyWay."""
     options = {
         "MNT_ID": MNT_ID,
@@ -86,8 +86,8 @@ def calc_payment_url(payment_id: str, amount: str, description: str) -> str:
         "MNT_DESCRIPTION": description,
         "MNT_CURRENCY_CODE": "RUB",
         "MNT_TEST_MODE": "0",
-        "MNT_SUCCESS_URL": request.base_url,
-        "MNT_FAIL_URL": request.base_url,
+        "MNT_SUCCESS_URL": base_url,
+        "MNT_FAIL_URL": base_url,
     }
     # httpx.QueryParams does not provide a ``render`` method. ``str()`` will
     # properly encode the parameters into a query string.
@@ -292,7 +292,7 @@ async def invoices(request: Request) -> Response:
         if status == "Unpaid" and f.get("Method") == "Auto Credit Card":
             description = f"Резидентство за {month} ({resident})"
             pay_link = calc_payment_url(
-                str(f.get("Payment Id")), f"{float(amount):.2f}", description
+                str(f.get("Payment Id")), f"{float(amount):.2f}", description, request.base_url
             )
 
         link_html = (
