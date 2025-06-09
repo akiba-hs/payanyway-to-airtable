@@ -86,6 +86,8 @@ def calc_payment_url(payment_id: str, amount: str, description: str) -> str:
         "MNT_DESCRIPTION": description,
         "MNT_CURRENCY_CODE": "RUB",
         "MNT_TEST_MODE": "0",
+        "MNT_SUCCESS_URL": request.base_url,
+        "MNT_FAIL_URL": request.base_url,
     }
     # httpx.QueryParams does not provide a ``render`` method. ``str()`` will
     # properly encode the parameters into a query string.
