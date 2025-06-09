@@ -320,10 +320,12 @@ async def invoices(request: Request) -> Response:
     <html lang='en'>
     <head>
         <meta charset='utf-8'>
+        <meta name='viewport' content='width=device-width, initial-scale=1'>
         <title>Invoices</title>
         <style>
             body {{ font-family: Arial, sans-serif; padding: 20px; }}
             table {{ border-collapse: collapse; width: 100%; }}
+            .table-container {{ overflow-x: auto; }}
             th, td {{ border: 1px solid #ccc; padding: 8px 12px; text-align: left; }}
             th {{ background-color: #f5f5f5; }}
             a.pay-link {{ color: white; background: #007bff; padding: 4px 8px; border-radius: 4px; text-decoration: none; }}
@@ -331,16 +333,23 @@ async def invoices(request: Request) -> Response:
             .paid-row {{ background-color: #e6ffed; }}
             .unpaid-row {{ background-color: #ffecec; }}
             .test-paid-row {{ background-color: #fff9e6; }}
+            @media (max-width: 600px) {{
+                body {{ padding: 10px; }}
+                th, td {{ padding: 6px 8px; }}
+                a.pay-link {{ display: inline-block; margin-top: 4px; }}
+            }}
         </style>
     </head>
     <body>
         <h1>Ваши инвойсы</h1>
+        <div class="table-container">
         <table>
             <tr>
                 <th>Резидент</th><th>Месяц</th><th>Способ</th><th>Сумма</th><th>Статус</th><th></th>
             </tr>
             {table_rows}
         </table>
+        </div>
     </body>
     </html>
     """
