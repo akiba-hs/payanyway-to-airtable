@@ -324,7 +324,6 @@ async def invoices(request: Request) -> Response:
             table {{ border-collapse: collapse; width: 100%; }}
             th, td {{ border: 1px solid #ccc; padding: 8px 12px; text-align: left; }}
             th {{ background-color: #f5f5f5; }}
-            tr:nth-child(even) {{ background-color: #fafafa; }}
             a.pay-link {{ color: white; background: #007bff; padding: 4px 8px; border-radius: 4px; text-decoration: none; }}
             .no-pay {{ color: #777; font-style: italic; }}
             .paid-row {{ background-color: #e6ffed; }}
