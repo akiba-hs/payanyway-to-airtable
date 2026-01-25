@@ -181,7 +181,7 @@ async def find_invoices(username: str, user_id: str) -> List[Dict[str, object]]:
 
     async with httpx.AsyncClient() as client:
         formula = f"OR(FIND('@{username}', ARRAYJOIN(ARRAYUNIQUE({{Telegram Username (from Resident)}}))), FIND('{user_id}', ARRAYJOIN(ARRAYUNIQUE({{Telegram Username (from Resident)}}))))"
-        resp = await client.get(base_url, headers=headers, params={"filterByFormula": formula})
+        resp = await client.get(base_url, headers=headers, params={"filterByFormula": formula, "sort[0][field]": "Date", "sort[0][direction]": "desc"})
         if resp.status_code != 200:
             logging.error("Airtable search failed: %s %s", resp.status_code, resp.text)
             return []
