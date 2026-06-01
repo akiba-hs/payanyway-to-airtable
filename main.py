@@ -214,7 +214,7 @@ def build_xml_response(
     </MNT_RESPONSE>
 
     Подпись считается как MD5(MNT_RESULT_CODE + MNT_ID + MNT_TRANSACTION_ID + INTEGRITY_CODE).
-    Значения атрибутов в <VALUE> не должны содержать кавычек, символов &, $, #, /, \.
+    Значения атрибутов в <VALUE> не должны содержать кавычек, символов &, $, #, /, \\.
     """
     # 1. Создаём корень <MNT_RESPONSE>
     root = ET.Element("MNT_RESPONSE")

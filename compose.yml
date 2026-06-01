@@ -1,0 +1,35 @@
+name: payanyway-to-airtable
+
+services:
+  app:
+    build: .
+    image: ghcr.io/akiba-hs/payanyway-to-airtable:local
+    restart: unless-stopped
+    init: true
+    environment:
+      MNT_ID: ${MNT_ID:?set MNT_ID}
+      MNT_INTEGRITY_CODE: ${MNT_INTEGRITY_CODE:?set MNT_INTEGRITY_CODE}
+      AIRTABLE_API_KEY: ${AIRTABLE_API_KEY:?set AIRTABLE_API_KEY}
+      AIRTABLE_BASE_ID: ${AIRTABLE_BASE_ID:?set AIRTABLE_BASE_ID}
+      AIRTABLE_TABLE_NAME: ${AIRTABLE_TABLE_NAME:-Payments}
+      AUTH_URL: ${AUTH_URL:?set AUTH_URL}
+      PUBLIC_KEY: ${PUBLIC_KEY:?set PUBLIC_KEY}
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/webhook', timeout=3).read()"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.payanyway-to-airtable.rule: "Host(`${PAYANYWAY_HOST:?set PAYANYWAY_HOST}`)"
+      traefik.http.routers.payanyway-to-airtable.entrypoints: "websecure"
+      traefik.http.routers.payanyway-to-airtable.tls: "true"
+      traefik.http.routers.payanyway-to-airtable.tls.certresolver: "myresolver"
+      traefik.http.services.payanyway-to-airtable.loadbalancer.server.port: "8000"
