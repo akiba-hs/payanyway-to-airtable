@@ -50,4 +50,21 @@ The public PayAnyWay webhook URL is:
 https://$PAYANYWAY_HOST/webhook
 ```
 
-See [`docs/MIGRATION_TO_PUBLIC_TRAEFIK.md`](docs/MIGRATION_TO_PUBLIC_TRAEFIK.md) for the full migration and rollback runbook.
+## Automated deploy
+
+`.github/workflows/deploy.yml` mirrors the deploy workflow in `akiba-hs/public-traefik`: on push to `main`/`master` it builds an amd64 image, pushes it to GHCR as `latest` and the short commit SHA, generates `.env` from GitHub Secrets, and deploys `compose.yml` to `public.akiba.space` via SSH.
+
+Required repository secrets:
+
+- `AKIBA_PUBLIC_SSH_PRIVATE_KEY`
+- `AKIBA_PUBLIC_SSH_USER`
+- `PAYANYWAY_HOST`
+- `MNT_ID`
+- `MNT_INTEGRITY_CODE`
+- `AIRTABLE_API_KEY`
+- `AIRTABLE_BASE_ID`
+- `AUTH_URL`
+- `PUBLIC_KEY`
+- optional `AIRTABLE_TABLE_NAME` (defaults to `Payments`)
+
+See [`docs/MIGRATION_TO_PUBLIC_TRAEFIK.md`](docs/MIGRATION_TO_PUBLIC_TRAEFIK.md) for the full migration, deploy, and rollback runbook.

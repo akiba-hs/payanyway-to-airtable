@@ -1,5 +1,8 @@
 FROM python:3.11-slim
 
+ARG version=dev
+LABEL org.opencontainers.image.revision=$version
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 

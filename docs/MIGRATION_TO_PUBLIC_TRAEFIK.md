@@ -25,7 +25,31 @@ This app can run on the same Docker host as [`akiba-hs/public-traefik`](https://
    - `AUTH_URL`
    - `PUBLIC_KEY` as a single line with literal `\n` separators
 
-## Deploy
+## GitHub Actions deploy
+
+The repository includes `.github/workflows/deploy.yml`, intentionally matching the `akiba-hs/public-traefik` deployment pattern:
+
+1. On every push to `main` or `master`, GitHub Actions builds `linux/amd64` with Buildx.
+2. The image is pushed to GHCR as:
+   - `ghcr.io/akiba-hs/payanyway-to-airtable:latest`
+   - `ghcr.io/akiba-hs/payanyway-to-airtable:<short-sha>`
+3. The workflow writes a production `.env` from repository secrets.
+4. `humbertocrispim/ssh-docker-compose-action@v1.0.0` deploys `compose.yml` to `public.akiba.space` with the compose prefix `payanyway-to-airtable` and `pull: true`.
+
+Required GitHub repository secrets:
+
+- `AKIBA_PUBLIC_SSH_PRIVATE_KEY`
+- `AKIBA_PUBLIC_SSH_USER`
+- `PAYANYWAY_HOST`
+- `MNT_ID`
+- `MNT_INTEGRITY_CODE`
+- `AIRTABLE_API_KEY`
+- `AIRTABLE_BASE_ID`
+- `AUTH_URL`
+- `PUBLIC_KEY` — may be stored as a multiline PEM or as a single line with literal `\n`; the workflow normalizes it for Compose
+- optional `AIRTABLE_TABLE_NAME` (defaults to `Payments`)
+
+## Manual deploy
 
 ```bash
 sudo mkdir -p /opt/payanyway-to-airtable
@@ -84,11 +108,14 @@ The migration does not alter Airtable schema or PayAnyWay credentials, so rollba
 
 ## Operations
 
-Update/redeploy:
+Update/redeploy via GitHub Actions: merge/push to `main` after the required repository secrets are set. The workflow rebuilds the image, pushes it to GHCR, and redeploys `compose.yml` on `public.akiba.space`.
+
+Manual update/redeploy on the host:
 
 ```bash
 cd /opt/payanyway-to-airtable
 git pull --ff-only
+docker compose pull
 docker compose up -d --build
 docker compose ps
 ```

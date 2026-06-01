@@ -1,0 +1,108 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push-amd64:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare short commit hash
+        id: vars
+        run: echo "git_sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          build-args: "version=${{ steps.vars.outputs.git_sha_short }}"
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.git_sha_short }}
+
+      - name: Generate .env for Compose
+        env:
+          PAYANYWAY_HOST: ${{ secrets.PAYANYWAY_HOST }}
+          MNT_ID: ${{ secrets.MNT_ID }}
+          MNT_INTEGRITY_CODE: ${{ secrets.MNT_INTEGRITY_CODE }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+          AIRTABLE_TABLE_NAME: ${{ secrets.AIRTABLE_TABLE_NAME }}
+          AUTH_URL: ${{ secrets.AUTH_URL }}
+          PUBLIC_KEY: ${{ secrets.PUBLIC_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          required = [
+              "PAYANYWAY_HOST",
+              "MNT_ID",
+              "MNT_INTEGRITY_CODE",
+              "AIRTABLE_API_KEY",
+              "AIRTABLE_BASE_ID",
+              "AUTH_URL",
+              "PUBLIC_KEY",
+          ]
+          missing = [key for key in required if not os.environ.get(key)]
+          if missing:
+              raise SystemExit(f"Missing required GitHub secrets: {', '.join(missing)}")
+
+          def dotenv_quote(value: str) -> str:
+              normalized = value.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "\\n")
+              return "'" + normalized.replace("'", "\\'") + "'"
+
+          values = {
+              "PAYANYWAY_HOST": os.environ["PAYANYWAY_HOST"],
+              "MNT_ID": os.environ["MNT_ID"],
+              "MNT_INTEGRITY_CODE": os.environ["MNT_INTEGRITY_CODE"],
+              "AIRTABLE_API_KEY": os.environ["AIRTABLE_API_KEY"],
+              "AIRTABLE_BASE_ID": os.environ["AIRTABLE_BASE_ID"],
+              "AIRTABLE_TABLE_NAME": os.environ.get("AIRTABLE_TABLE_NAME") or "Payments",
+              "AUTH_URL": os.environ["AUTH_URL"],
+              "PUBLIC_KEY": os.environ["PUBLIC_KEY"],
+          }
+
+          Path(".env").write_text(
+              "\n".join(f"{key}={dotenv_quote(value)}" for key, value in values.items()) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - uses: humbertocrispim/ssh-docker-compose-action@v1.0.0
+        name: Remote Deployment with Docker-Compose
+        with:
+          ssh_host: public.akiba.space
+          ssh_private_key: ${{ secrets.AKIBA_PUBLIC_SSH_PRIVATE_KEY }}
+          ssh_user: ${{ secrets.AKIBA_PUBLIC_SSH_USER }}
+          docker_compose_prefix: ${{ github.event.repository.name }}
+          docker_compose_filename: compose.yml
+          pull: true

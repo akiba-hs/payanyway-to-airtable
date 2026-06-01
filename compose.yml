@@ -3,7 +3,7 @@ name: payanyway-to-airtable
 services:
   app:
     build: .
-    image: ghcr.io/akiba-hs/payanyway-to-airtable:local
+    image: ghcr.io/akiba-hs/payanyway-to-airtable:latest
     restart: unless-stopped
     init: true
     environment:
