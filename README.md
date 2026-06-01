@@ -30,26 +30,6 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-## Docker deployment behind `akiba-hs/public-traefik`
-
-The repository includes `Dockerfile` and `compose.yml` for running on the same Docker host as [`akiba-hs/public-traefik`](https://github.com/akiba-hs/public-traefik). The Traefik instance already enables the Docker provider with `exposedByDefault: false`; this app opts in via labels in `compose.yml`.
-
-```bash
-cp .env.example .env
-chmod 600 .env
-$EDITOR .env
-
-docker compose config
-docker compose up -d --build
-docker compose ps
-```
-
-The public PayAnyWay webhook URL is:
-
-```text
-https://$PAYANYWAY_HOST/webhook
-```
-
 ## Automated deploy
 
 `.github/workflows/deploy.yml` mirrors the deploy workflow in `akiba-hs/public-traefik`: on push to `main`/`master` it builds an amd64 image, pushes it to GHCR as `latest` and the short commit SHA, generates `.env` from GitHub Secrets, and deploys `compose.yml` to `public.akiba.space` via SSH.
@@ -67,4 +47,3 @@ Required repository secrets:
 - `PUBLIC_KEY`
 - optional `AIRTABLE_TABLE_NAME` (defaults to `Payments`)
 
-See [`docs/MIGRATION_TO_PUBLIC_TRAEFIK.md`](docs/MIGRATION_TO_PUBLIC_TRAEFIK.md) for the full migration, deploy, and rollback runbook.
